@@ -233,5 +233,6 @@ results/
 *.png
 *.pdf
 
+# Sub folders
 data/
 models/
