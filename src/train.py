@@ -43,7 +43,7 @@ def load_model() -> tuple:
     return pipeline, thresholds
 
 
-if "__name__" == "__main__":
+if __name__ == "__main__":
     X_train = pd.read_csv("data/X_train.csv")
     y_train = pd.read_csv("data/y_train.csv").squeeze()
 

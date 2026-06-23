@@ -32,7 +32,7 @@ def get_shap_explanation(pipeline: Pipeline, X_train: pd.DataFrame, customer_row
 
     masker = shap.maskers.Independent(X_train_scaled) # background dataset to simulate missing features, assumes features are independent and replaces with values sampled from X_train
     explainer = shap.LinearExplainer(logistic_regression, masker=masker) # compute SHAP values
-    explanation = explainer(X_train_scaled) # compute contribution from each feature in classification
+    explanation = explainer(customer_row_scaled) # compute contribution from each feature in classification
     # phi_i(row) = weight_i * (x_i(row) - mean_i), for shap values with linear model
 
     return {
