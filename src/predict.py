@@ -18,7 +18,7 @@ def get_shap_explanation(pipeline: Pipeline, X_train: pd.DataFrame, customer_row
     Returns SHAP values and base value for a single customer.
     """
     logistic_regression = pipeline["model"]
-    scalar = pipeline["scalar"]
+    scalar = pipeline["scaler"]
 
     X_train_scaled = pd.DataFrame(
         scalar.transform(X_train),
