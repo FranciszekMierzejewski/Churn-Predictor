@@ -18,7 +18,7 @@ def train_model(X_train: pd.DataFrame, y_train: pd.DataFrame, C: float = 0.1) ->
     return pipeline
 
 
-def save_model(pipeline: Pipeline, threshold_recall: float = 0.1) -> None:
+def save_model(pipeline: Pipeline, threshold_recall: float = 0.4) -> None:
     """
     Save fitted pipeline and thresholds
     """
@@ -49,4 +49,4 @@ if __name__ == "__main__":
 
     pipeline = train_model(X_train, y_train, C = 0.1)
 
-    save_model(pipeline, threshold_recall = 0.1)
+    save_model(pipeline, 0.4)

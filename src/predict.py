@@ -18,15 +18,15 @@ def get_shap_explanation(pipeline: Pipeline, X_train: pd.DataFrame, customer_row
     Returns SHAP values and base value for a single customer.
     """
     logistic_regression = pipeline["model"]
-    scalar = pipeline["scaler"]
+    scaler = pipeline["scaler"]
 
     X_train_scaled = pd.DataFrame(
-        scalar.transform(X_train),
+        scaler.transform(X_train),
         columns = X_train.columns
     )
 
     customer_row_scaled = pd.DataFrame(
-        scalar.transform(customer_row),
+        scaler.transform(customer_row),
         columns = customer_row.columns
     )
 
@@ -42,7 +42,7 @@ def get_shap_explanation(pipeline: Pipeline, X_train: pd.DataFrame, customer_row
         "feature values" : customer_row_scaled.iloc[0].tolist()
     }
 
-def predict(pipeline: Pipeline, X_train: pd.DataFrame, customer_row: pd.DataFrame, threshold: float = 0.5) -> dict:
+def predict(pipeline: Pipeline, X_train: pd.DataFrame, customer_row: pd.DataFrame, threshold: float = 0.4) -> dict:
     """
     Prediction for a customer. Returns probability, churn prediction and SHAP explanation.
     """
