@@ -64,7 +64,7 @@ The dataset is imbalanced (~73.5% retained, ~26.5% churned). Rather than SMOTE, 
 All models were evaluated using **5-fold Stratified Cross-Validation** to preserve class balance across folds. AUC-ROC was the primary metric given the class imbalance.
 
 ### Threshold Tuning
-The default decision threshold of 0.5 was tuned to **0.1** to maximise recall. In a churn use case, the cost of missing a churner (false negative) is higher than the cost of a wasted retention offer (false positive).
+The default decision threshold of 0.5 was tuned to **0.4** to maximise recall whilst preserving precision at an acceptable level. In a churn use case, the cost of missing a churner (false negative) is higher than the cost of a wasted retention offer (false positive).
 
 ### Regularisation
 GridSearchCV over `C ∈ {0.001, 0.01, 0.1, 1, 10, 100}` with ElasticNet penalty identified **C=0.1** as optimal. AUC-ROC plateaus beyond this value with negligible overfitting.
