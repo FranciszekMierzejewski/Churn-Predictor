@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Literal
+
 class Customer(BaseModel):
     """
     Input features for churn prediction, apart from excluded in preprocessing
