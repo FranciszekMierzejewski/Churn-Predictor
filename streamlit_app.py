@@ -88,3 +88,6 @@ if submitted:
 
     except requests.exceptions.RequestException as e:
         st.error(f"Request to API failed: {e}")
+
+
+# az container stop --resource-group churn --name churn-api
