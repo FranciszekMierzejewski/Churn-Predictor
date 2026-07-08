@@ -150,6 +150,7 @@ activemq-data/
 *.sage.py
 
 # Environments
+telco_env
 .env
 .envrc
 .venv

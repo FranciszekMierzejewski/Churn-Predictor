@@ -76,7 +76,7 @@ class Customer(BaseModel):
                 "Payment Method": "Electronic check",
                 "Monthly Charges": 85.5,
                 "Total Charges": 1024.5,
-                "include_shap": False
+                "include_shap": True
             }
         },
     }

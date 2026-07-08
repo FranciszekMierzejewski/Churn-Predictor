@@ -18,7 +18,7 @@ def train_model(X_train: pd.DataFrame, y_train: pd.DataFrame, C: float = 0.1) ->
     return pipeline
 
 
-def save_model(pipeline: Pipeline, threshold_recall: float = 0.4) -> None:
+def save_model(pipeline: Pipeline, recall_threshold: float = 0.4) -> None:
     """
     Save fitted pipeline and thresholds
     """
@@ -26,7 +26,7 @@ def save_model(pipeline: Pipeline, threshold_recall: float = 0.4) -> None:
 
     joblib.dump(pipeline, "models/logistic_regression.pkl")
     joblib.dump(
-        {"recall_threshold": float(threshold_recall)},
+        {"recall_threshold": float(recall_threshold)},
         "models/thresholds.pkl"
     )
 

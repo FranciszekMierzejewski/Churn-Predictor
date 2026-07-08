@@ -42,17 +42,20 @@ def get_shap_explanation(pipeline: Pipeline, X_train: pd.DataFrame, customer_row
         "feature values" : customer_row_scaled.iloc[0].tolist()
     }
 
-def predict(pipeline: Pipeline, X_train: pd.DataFrame, customer_row: pd.DataFrame, threshold: float = 0.4) -> dict:
+def predict(pipeline: Pipeline, X_train: pd.DataFrame, customer_row: pd.DataFrame, threshold: float = 0.4, include_shap: bool = False) -> dict:
     """
     Prediction for a customer. Returns probability, churn prediction and SHAP explanation.
     """
 
     probability = get_churn_probability(pipeline, customer_row)
     prediction = int(probability >= threshold)
-    explanation = get_shap_explanation(pipeline, X_train, customer_row)
 
-    return {
+    result = {
         "probability": probability,
-        "prediction": prediction,
-        "explanation": explanation
+        "prediction": prediction
     }
+
+    if include_shap:
+        result["explanation"] = get_shap_explanation(pipeline, X_train, customer_row)
+
+    return result
