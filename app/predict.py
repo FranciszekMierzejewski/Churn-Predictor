@@ -4,7 +4,7 @@ import shap
 import joblib
 import os
 from sklearn.pipeline import Pipeline
-from train import load_model
+from .train import load_model
 
 def get_churn_probability(pipeline: Pipeline, customer_row: pd.DataFrame) -> float:
     """

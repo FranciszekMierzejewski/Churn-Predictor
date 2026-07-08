@@ -51,6 +51,7 @@ class Customer(BaseModel):
     ] = Field(..., alias="Payment Method", examples=["Electronic check"])
     monthly_charges: float = Field(..., alias="Monthly Charges", ge=0, examples=[85.5])
     total_charges: float = Field(..., alias="Total Charges", ge=0, examples=[1024.5])
+    include_shap: bool = Field(default=False, alias="include_shap") # compute SHAP explanation if true
 
     model_config = {
         "populate_by_name": True,  # allows snake_case OR alias (e.g. "Senior Citizen")
@@ -75,6 +76,7 @@ class Customer(BaseModel):
                 "Payment Method": "Electronic check",
                 "Monthly Charges": 85.5,
                 "Total Charges": 1024.5,
+                "include_shap": False
             }
         },
     }
