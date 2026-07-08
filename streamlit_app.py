@@ -1,9 +1,11 @@
 import os
+from dotenv import load_dotenv
 
 import requests
 import streamlit as st
 import pandas as pd
 
+load_dotenv()
 API_URL = os.environ.get("CHURN_API_URL", "http://localhost:8000") # read env variable or fall back to local dev
 
 st.title("Telco Customer Churn Predictor")
@@ -32,7 +34,7 @@ with st.form("customer form"):
         tech_support = st.selectbox("Tech Support", ["No", "Yes", "No internet service"])
         streaming_tv = st.selectbox("Streaming TV", ["No", "Yes", "No internet service"])
         streaming_movies = st.selectbox("Streaming Movies", ["No", "Yes", "No internet service"])
-        payment_method = st.selectbox("Payment Method",["Electronic check", "Mailed check", "Bank transfer", "Credit card"])
+        payment_method = st.selectbox("Payment Method",["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
         monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, value=70.0, step=10.0)
         total_charges = st.number_input("Total Charges ($)", min_value=0.0, value=840.0, step=10.0)
 

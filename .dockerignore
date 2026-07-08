@@ -4,7 +4,8 @@ __pycache__/
 .venv/
 notebooks/
 *.ipynb
-data/
+data/*
+!data/X_train.csv
 .aws-sam/
 streamlit_app.py
 README.md

@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import logging
 from fastapi import FastAPI, HTTPException
-from mangum import Mangum # runs FastAPI under AWS Lambda 
 
 from .schemas import Customer, FeatureImpact, PredictionResponse
 from .preprocess import preprocess
@@ -124,4 +123,4 @@ def predict_churn(customer: Customer):
         logger.exception("Unexpected error during prediction")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-handler = Mangum(app) # entry point AWS Lambda will call
+# originally AWS lambda, changed to Azure so no mangum

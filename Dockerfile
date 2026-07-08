@@ -1,13 +1,12 @@
-# AWS Lambda Python 3.12 base image
-FROM public.ecr.aws/lambda/python:3.12
+FROM python:3.11-slim
 
-# Copy requirements and install dependencies
+WORKDIR /app
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your application code and models
 COPY app/ ./app/
 COPY models/ ./models/
+COPY data/X_train.csv ./data/X_train.csv
 
-# Set the CMD to your handler
-CMD ["app.main.handler"]
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
