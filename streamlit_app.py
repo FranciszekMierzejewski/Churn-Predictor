@@ -68,10 +68,14 @@ if submitted:
         response.raise_for_status()
         result = response.json()
 
-        st.subheader("Result")
-        churn_label = "Churn" if result["prediction"] == 1 else "Retain"
-        st.metric("Prediction", churn_label, f"{result['probability']*100:.2f}% probability")
-        st.caption(f"Decision threshold used: {result['threshold_used']}")
+        st.subheader(f"Result with Decision Threshold: {result['threshold_used']}")
+        
+        if result["prediction"] == 1:
+            st.error("**Churn**")
+        else:
+            st.success("**Retain**")
+
+        st.metric("Probability", f"{result['probability'] * 100:.2f}%")
 
         st.subheader("Top factors driving this prediction")
         if result["top_factors"]:

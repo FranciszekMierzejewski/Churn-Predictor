@@ -123,3 +123,5 @@ def predict_churn(customer: Customer):
     except Exception: # catch all left
         logger.exception("Unexpected error during prediction")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+handler = Mangum(app) # entry point AWS Lambda will call

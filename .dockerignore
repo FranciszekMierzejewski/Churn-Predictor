@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.git/
+.venv/
+notebooks/
+*.ipynb
+data/
+.aws-sam/
+streamlit_app.py
+README.md
+.dockerignore
+.gitignore
