@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import logging
 from fastapi import FastAPI 
@@ -29,4 +30,31 @@ def get_model_artifacts():
 
     if _pipeline is None:
         pipeline, thresholds = load_model()
-        threshold = thresholds.get("recall_threshold", 0.4)
+        threshold = thresholds.get("recall_threshold", 0.4) # get threshold, default to 0.4 if empty
+
+    if os.path.exists("models/shap_background.csv"):
+        shap_background = pd.read_csv("models/shap_background.csv")
+        feature_columns = shap_background.columns.tolist()
+        logger.info("Loaded SHAP background")
+    elif os.path.exists("data/X_train.csv"):
+        shap_background = pd.read_csv("data/X_train.csv")
+        feature_columns = shap_background.columns.tolist()
+        logger.warning("Shap background not found. Using full X_train")
+    else:
+        raise FileNotFoundError(
+            "Neither shap_background.csv nor X_train.csv could be found."
+        )
+
+    _pipeline = pipeline
+    _threshold = threshold
+    _feature_columns = feature_columns
+    _shap_background = shap_background
+
+    logger.info("Model artifacts loaded successfully")
+
+    return _pipeline, _threshold, _feature_columns, _shap_background
+
+
+@app.get("/health") # pings health automatically to keep container alive every few seconds
+def health():
+    return {"status": "ok"}
