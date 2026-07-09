@@ -9,6 +9,7 @@ load_dotenv()
 API_URL = os.environ.get("CHURN_API_URL", "http://localhost:8000") # read env variable or fall back to local dev
 
 st.title("Telco Customer Churn Predictor")
+st.caption("Adjust decision threshold to control sensitivity of prediction")
 #st.caption(f"Calling API at: {API_URL}")
 
 with st.form("customer form"):
@@ -37,6 +38,10 @@ with st.form("customer form"):
         payment_method = st.selectbox("Payment Method",["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
         monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, value=70.0, step=10.0)
         total_charges = st.number_input("Total Charges ($)", min_value=0.0, value=840.0, step=10.0)
+
+
+    decision_threshold = st.slider("Decision Threshold", min_value = 0.0, max_value = 1.0, value = 0.4, step = 0.01, help = "Lower threshold catches more churners due to higher recall. Higher threshold avoids falsely identified churners due to high precision")
+
 
     include_shap = st.checkbox("Show feature explanations with SHAP", value=True)
     submitted = st.form_submit_button("Predict Churn")
@@ -69,19 +74,23 @@ if submitted:
         response = requests.post(f"{API_URL}/predict", json=payload, timeout=30)
         response.raise_for_status()
         result = response.json()
-
-        st.subheader(f"Result with Decision Threshold: {result['threshold_used']}")
         
-        if result["prediction"] == 1:
+        probability = result['probability']
+        prediction = (0, 1)[probability >= decision_threshold]
+
+        st.subheader(f"Result with Decision Threshold: {decision_threshold}")
+
+        if prediction == 1:
             st.error("**Churn**")
         else:
             st.success("**Retain**")
 
-        st.metric("Probability", f"{result['probability'] * 100:.2f}%")
+        st.metric("Probability", f"{probability * 100:.2f}%")
 
         st.subheader("Top factors driving this prediction")
         if result["top_factors"]:
             factors_df = pd.DataFrame(result["top_factors"])
+            factors_df.index = factors_df.index + 1 # start index at 1
             st.dataframe(factors_df, use_container_width=True)
         else:
             st.caption("Enable the SHAP checkbox above to see feature explanations.")
