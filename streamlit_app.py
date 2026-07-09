@@ -76,7 +76,7 @@ if submitted:
         result = response.json()
         
         probability = result['probability']
-        prediction = (0, 1)[probability >= decision_threshold]
+        prediction = (0, 1)[probability >= decision_threshold] # 0 = retain, 1 = churn, tuple indexing ftw 
 
         st.subheader(f"Result with Decision Threshold: {decision_threshold}")
 
