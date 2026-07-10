@@ -124,3 +124,4 @@ def predict_churn(customer: Customer):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # originally AWS lambda, changed to Azure so no mangum
+# az container restart --resource-group churn --name churn-api
