@@ -71,7 +71,7 @@ Streamlit Cloud (frontend)  --HTTP-->  Azure Container Instance (FastAPI + model
 | Random Forest | 0.847 | 0.502 | 0.670 | 0.574 |
 | XGBoost | 0.836 | 0.659 | 0.569 | 0.610 |
  
-**Logistic Regression outperforms both ensemble methods** on AUC-ROC and recall — suggesting the churn signal in this dataset is largely linear in nature. This is a meaningful result: the simplest model wins, and is also the most interpretable.
+**Logistic Regression outperforms both ensemble methods** on AUC-ROC and recall — suggesting the churn signal in this dataset is largely linear in nature. 
  
 **Top churn drivers identified by SHAP:**
 1. **Tenure months** — shorter tenure strongly predicts churn
