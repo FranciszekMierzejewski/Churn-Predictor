@@ -29,19 +29,20 @@ Churn-Predictor/
 ├── models/                        # Not tracked by git
 │   ├── logistic_regression.pkl
 │   ├── shap_background.csv         # Precomputed SHAP background sample
-│   └── thresholds.pkl
+│   └── thresholds.pkl               # recall_threshold, C, l1_ratio
 ├── notebooks/
 │   ├── .ipynb_checkpoints/
 │   ├── 01_eda.ipynb                # Exploratory data analysis
 │   ├── 02_preprocessing.ipynb      # Cleaning, encoding, feature engineering
 │   ├── 03_modelling.ipynb          # Model comparison (LR, RF, XGBoost)
-│   ├── 04_shap.ipynb               # SHAP explainability analysis
-│   ├── 05_model_tuning.ipynb       # Regularisation, threshold tuning, calibration
+│   ├── 04_model_tuning.ipynb       # Elasticnet regularisation, threshold tuning, calibration
+│   ├── 05_shap.ipynb               # SHAP explainability analysis on the tuned model
 │   └── 06_demo.ipynb               # End-to-end demo on sample customer profiles
 ├── telco_env/                     # Local virtual environment (not tracked by git)
 ├── streamlit_app.py                # Interactive frontend calling the deployed API
 ├── Dockerfile                     # Container image for the FastAPI service
-├── requirements.txt
+├── requirements.txt                # Minimal deps for running the API/Streamlit app
+├── requirements-dev.txt            # Adds notebook-only deps (xgboost, matplotlib, seaborn, jupyter)
 ├── README.md
 ├── ROADMAP.md
 ├── LICENSE
@@ -60,25 +61,42 @@ Streamlit Cloud (frontend)  --HTTP-->  Azure Container Instance (FastAPI + model
  
 - **Model & API**: a Logistic Regression pipeline served via FastAPI, containerised with Docker, and deployed on Azure Container Instances (ACI).
 - **Frontend**: a Streamlit app hosted on Streamlit Community Cloud, calling the API over HTTP for predictions and SHAP explanations.
-- **Explainability**: SHAP values are computed on demand (toggleable in the UI) using a precomputed 100-row background sample, keeping default requests fast.
+- **Explainability**: SHAP values are computed on demand (toggleable in the UI) using a precomputed 200-row background sample, keeping default requests fast.
 ---
  
 ## Key Findings
  
+### Model benchmark (5-fold CV, default hyperparameters, used to pick the model family)
+ 
 | Model | AUC-ROC | Recall | Precision | F1 |
 |---|---|---|---|---|
-| Logistic Regression | **0.859** | **0.809** | 0.531 | 0.641 |
-| Random Forest | 0.847 | 0.502 | 0.670 | 0.574 |
-| XGBoost | 0.836 | 0.659 | 0.569 | 0.610 |
+| Logistic Regression | **0.858** | **0.809** | 0.535 | 0.644 |
+| Random Forest | 0.840 | 0.662 | 0.583 | 0.620 |
+| XGBoost | 0.836 | 0.676 | 0.558 | 0.611 |
  
-**Logistic Regression outperforms both ensemble methods** on AUC-ROC and recall — suggesting the churn signal in this dataset is largely linear in nature. 
+Logistic Regression wins on both AUC-ROC and recall, so it was carried forward for tuning.
  
-**Top churn drivers identified by SHAP:**
-1. **Tenure months** — shorter tenure strongly predicts churn
-2. **Monthly charges** — higher charges increase churn risk
-3. **Contract type** — month-to-month customers churn at 43% vs 3% for two-year contracts
-4. **Fiber optic internet** — Fiber Optic customers churn at a disproportionately high rate
-5. **Dependents** — customers without dependents are significantly more likely to churn
+### Final tuned model (elasticnet LR, C=0.1, l1_ratio=1.0, decision threshold=0.32)
+ 
+| Metric | Default threshold (0.5) | Tuned threshold (0.32) |
+|---|---|---|
+| Recall | 78.3% | **90.4%** |
+| Precision | 52.4% | 45.0% |
+| F1 | 0.628 | 0.601 |
+| AUC-ROC | 0.846 (test set; threshold-independent) | |
+ 
+The threshold was chosen via out-of-fold F-beta (β=2) analysis on the training set, not the test set, to avoid leaking test data into a modelling decision. The test set above was touched exactly once, to report final numbers.
+ 
+L1 regularisation (l1_ratio=1.0, i.e. pure Lasso) turned out to outperform ridge/mixed elasticnet at this C, and zeroed out **7 of 29 engineered features entirely** (`gender`, `device protection`, `monthly charges`, `internet service_DSL`, `number of subscriptions`, `payment method_Mailed check`, `tenure month type_24 to 48`) - the final model relies on the remaining 22.
+ 
+**Top churn drivers identified by SHAP (on the final tuned model):**
+1. **Contract type** — month-to-month customers churn at ~43% vs ~3% for two-year contracts
+2. **Dependents** — customers without dependents are significantly more likely to churn
+3. **Fiber optic internet** — Fiber Optic customers churn at a disproportionately high rate
+4. **Tenure (0–12 months)** — customers in their first year churn at a much higher rate than longer-tenured customers
+5. **No internet service** — customers without internet service are notably less likely to churn
+These agree closely with the features L1 regularisation kept and weighted most heavily, which is a useful cross-check: two independent methods (coefficient magnitude and SHAP) converge on the same drivers.
+ 
 ---
  
 ## Methodology
@@ -87,24 +105,23 @@ Streamlit Cloud (frontend)  --HTTP-->  Azure Container Instance (FastAPI + model
 The dataset is imbalanced (~73.5% retained, ~26.5% churned). `class_weight="balanced"` was used to penalise misclassification of the minority class during training. This was chosen because:
 - It avoids introducing synthetic data noise
 - AUC-ROC and F1 were used as primary metrics, not accuracy
-
 ### Model Selection
 All models were evaluated using **5-fold Stratified Cross-Validation** to preserve class balance across folds. AUC-ROC was the primary metric given the class imbalance.
  
 ### Threshold Tuning
-The default decision threshold of 0.5 was tuned to **0.4** to maximise recall whilst preserving precision at an acceptable level. In a churn use case, the cost of missing a churner (false negative) is higher than the cost of a wasted retention offer (false positive). The live app also exposes this as an adjustable slider, so the sensitivity/precision trade-off can be explored interactively rather than fixed at build time.
+The default decision threshold of 0.5 was tuned to **0.32**, chosen to maximise an F-beta(β=2) score - weighting recall above precision, since in a churn use case the cost of missing a churner (false negative) is higher than the cost of a wasted retention offer (false positive). Threshold selection was done on out-of-fold predictions from the training set, then evaluated once on the held-out test set, to avoid tuning against the same data used for final reporting. The live app also exposes this as an adjustable slider, so the sensitivity/precision trade-off can be explored interactively rather than fixed at build time.
  
 ### Regularisation
-GridSearchCV over `C ∈ {0.001, 0.01, 0.1, 1, 10, 100}` with ElasticNet penalty identified **C=0.1** as optimal. AUC-ROC plateaus beyond this value with negligible overfitting.
+`GridSearchCV` over `C ∈ {0.001, 0.01, 0.1, 1, 10, 100}` and `l1_ratio ∈ {0, 0.25, 0.5, 0.75, 1}` (true elasticnet - both parameters tuned, not just C with an unset l1_ratio) identified **C=0.1, l1_ratio=1.0** as optimal, with mean CV AUC-ROC of 0.858. AUC-ROC plateaus beyond C=0.1 with negligible overfitting.
  
 ### Calibration
-A calibration curve confirmed that predicted probabilities closely reflect true churn rates, making the model suitable for risk scoring - not just binary classification.
+A calibration curve was used to check whether predicted probabilities reflect true churn rates. Isotonic calibration modestly improved the reliability curve's fit to the diagonal without materially changing AUC-ROC (0.8461 → 0.8458), consistent with AUC being threshold/calibration-invariant - calibration improves probability *quality* for risk-scoring use cases, not ranking ability.
  
 ---
  
 ## Explainability
  
-SHAP (SHapley Additive exPlanations) values are computed using `shap.LinearExplainer` against a fixed 100-row background sample. This produces:
+SHAP (SHapley Additive exPlanations) values are computed using `shap.LinearExplainer` against a fixed 200-row background sample, run against the final tuned model (not an intermediate default-hyperparameter version). This produces:
  
 - **Global summary plot** - which features drive churn across the entire customer base
 - **Feature importance ranking** - by mean absolute SHAP value
@@ -118,11 +135,12 @@ SHAP (SHapley Additive exPlanations) values are computed using `shap.LinearExpla
  
 ```json
 {
-  "probability": 0.62,
+  "probability": 0.927,
   "prediction": 1,
-  "threshold_used": 0.4,
+  "threshold_used": 0.32,
   "top_factors": [
-    {"feature": "contract", "shap_value": 0.59, "feature_value": -0.83}
+    {"feature": "tenure month type_0 to 12", "shap_value": 0.754, "feature_value": 1.503},
+    {"feature": "contract", "shap_value": 0.491, "feature_value": -0.828}
   ]
 }
 ```
@@ -145,11 +163,16 @@ streamlit run streamlit_app.py
 ```
  
 ### Reproducing the model from scratch
+```bash
+pip install -r requirements-dev.txt
+```
 Download the dataset from [Kaggle](https://www.kaggle.com/datasets/yeanzc/telco-customer-churn-ibm-dataset), place `Telco_Customer_Churn.xlsx` in `data/`, then run the notebooks in order:
 ```
-01_eda.ipynb → 02_preprocessing.ipynb → 03_modelling.ipynb → 04_shap.ipynb → 05_model_tuning.ipynb
+01_eda.ipynb → 02_preprocessing.ipynb → 03_modelling.ipynb → 04_model_tuning.ipynb → 05_shap.ipynb → 06_demo.ipynb
 ```
-Then train and save the model:
+`04_model_tuning.ipynb` saves `models/logistic_regression.pkl` and `models/thresholds.pkl`; `05_shap.ipynb` reads those and additionally saves `models/shap_background.csv`.
+ 
+Then, to retrain standalone using the exact hyperparameters found by the tuning notebook (reads `C`, `l1_ratio`, and `recall_threshold` from `models/thresholds.pkl` rather than any hardcoded value):
 ```bash
 python -m app.train
 ```
@@ -176,21 +199,29 @@ az container create \
  
 ## Requirements
  
+**`requirements.txt`** (API + Streamlit deployment):
 ```
-fastapi
-uvicorn
-pydantic
-pandas
-numpy
-scikit-learn
+fastapi==0.120.0
+pydantic==2.9.2
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.9.0
+shap==0.46.0
+joblib==1.4.2
+uvicorn==0.34.0
+streamlit==1.58.0
+python-dotenv==1.2.2
+requests==2.32.3
+```
+ 
+**`requirements-dev.txt`** (adds notebook-only dependencies - install this on top of the above requirements to reproduce the notebooks):
+```
+-r requirements.txt
 xgboost
-imbalanced-learn
-shap
-joblib
+matplotlib
+seaborn
 openpyxl
-streamlit
-requests
-python-dotenv
+jupyter
 ```
  
 ---
@@ -198,4 +229,3 @@ python-dotenv
 ## Licence
  
 MIT
- 
