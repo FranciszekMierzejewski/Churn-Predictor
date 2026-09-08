@@ -3,12 +3,13 @@ import pandas as pd
 import logging
 from fastapi import FastAPI, HTTPException
 
-from .schemas import Customer, FeatureImpact, PredictionResponse
-from .preprocess import preprocess
-from .train import load_model
-from .predict import predict
+from pathlib import Path
+from schemas import Customer, FeatureImpact, PredictionResponse
+from preprocess import preprocess
+from train import load_model
+from predict import predict
 
-
+BASE_DIR = Path(__file__).resolve().parent.parent
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO) # log variable
 
@@ -29,14 +30,17 @@ def get_model_artifacts():
 
     if _pipeline is None:
         pipeline, thresholds = load_model()
-        threshold = thresholds.get("recall_threshold", 0.4) # get threshold, default to 0.4 if empty
+        threshold = thresholds.get("recall_threshold", 0.4) # from models/thresholds.pkl, grab recall_threshold. 0.4 as fallback.
 
-        if os.path.exists("models/shap_background.csv"): # indent if for repeat execution
-            shap_background = pd.read_csv("models/shap_background.csv")
+        shap_background_path = BASE_DIR / "models" / "shap_background.csv"
+        x_train_path = BASE_DIR / "data" / "X_train.csv"
+
+        if shap_background_path.exists():
+            shap_background = pd.read_csv(shap_background_path)
             feature_columns = shap_background.columns.tolist()
             logger.info("Loaded SHAP background")
-        elif os.path.exists("data/X_train.csv"):
-            shap_background = pd.read_csv("data/X_train.csv")
+        elif x_train_path.exists():
+            shap_background = pd.read_csv(x_train_path)
             feature_columns = shap_background.columns.tolist()
             logger.warning("Shap background not found. Using full X_train")
         else:

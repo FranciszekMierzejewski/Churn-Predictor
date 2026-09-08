@@ -4,7 +4,7 @@ import shap
 import joblib
 import os
 from sklearn.pipeline import Pipeline
-from .train import load_model
+from train import load_model
 
 def get_churn_probability(pipeline: Pipeline, customer_row: pd.DataFrame) -> float:
     """
@@ -42,7 +42,7 @@ def get_shap_explanation(pipeline: Pipeline, X_train: pd.DataFrame, customer_row
         "feature values" : customer_row_scaled.iloc[0].tolist()
     }
 
-def predict(pipeline: Pipeline, X_train: pd.DataFrame, customer_row: pd.DataFrame, threshold: float = 0.4, include_shap: bool = False) -> dict:
+def predict(pipeline: Pipeline, X_train: pd.DataFrame, customer_row: pd.DataFrame, threshold: float = 0.4, include_shap: bool = True) -> dict:
     """
     Prediction for a customer. Returns probability, churn prediction and SHAP explanation.
     """

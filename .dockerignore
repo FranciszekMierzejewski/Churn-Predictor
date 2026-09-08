@@ -11,3 +11,7 @@ streamlit_app.py
 README.md
 .dockerignore
 .gitignore
+telco_env/
+.github/
+ROADMAP.md
+ 
