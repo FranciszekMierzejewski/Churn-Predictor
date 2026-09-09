@@ -8,6 +8,11 @@ import pandas as pd
 load_dotenv()
 API_URL = os.environ.get("CHURN_API_URL", "http://localhost:8000") # read env variable or fall back to local dev
 
+
+st.set_page_config(
+    page_title = "Telco Customer Churn Predictor",
+)
+
 st.title("Telco Customer Churn Predictor")
 st.caption("Adjust decision threshold to control sensitivity of prediction")
 #st.caption(f"Calling API at: {API_URL}")
@@ -39,10 +44,6 @@ with st.form("customer form"):
         monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, value=70.0, step=10.0)
         total_charges = st.number_input("Total Charges ($)", min_value=0.0, value=840.0, step=10.0)
 
-
-    decision_threshold = st.slider("Decision Threshold", min_value = 0.0, max_value = 1.0, value = 0.4, step = 0.01, help = "Lower threshold catches more churners due to higher recall. Higher threshold avoids falsely identified churners due to high precision")
-
-
     include_shap = st.checkbox("Show feature explanations with SHAP", value=True)
     submitted = st.form_submit_button("Predict Churn")
 
@@ -71,32 +72,102 @@ if submitted:
     }
 
     try:
-        response = requests.post(f"{API_URL}/predict", json=payload, timeout=30)
+        with st.spinner("Calculating churn probability..."):
+            response = requests.post(f"{API_URL}/predict", json=payload, timeout=30)
+
         response.raise_for_status()
         result = response.json()
         
         probability = result['probability']
-        prediction = (0, 1)[probability >= decision_threshold] # 0 = retain, 1 = churn, tuple indexing ftw 
+        prediction = result['prediction']
+        threshold_used = result['threshold_used']
 
-        st.subheader(f"Result with Decision Threshold: {decision_threshold}")
+        st.divider()
+        st.subheader("Prediction result")
+        st.caption(
+            f"Production decision threshold: `{threshold_used:.2f}`"
+        )
+
+        first_metric, second_metric = st.columns(2)
+
+        with first_metric:
+            st.metric(
+                "Churn probability",
+                f"{probability * 100:.2f}%",
+            )
+
+        with second_metric:
+            st.metric(
+                "Prediction",
+                "Churn" if prediction == 1 else "Retain",
+            )
 
         if prediction == 1:
-            st.error("**Churn**")
+            st.error(
+                "Predicted outcome: **Churn**. "
+                "Consider proactive retention action."
+            )
         else:
-            st.success("**Retain**")
-
-        st.metric("Probability", f"{probability * 100:.2f}%")
+            st.success(
+                "Predicted outcome: **Retain**. "
+                "The customer is not classified as likely to churn "
+                "at the model's tuned threshold."
+            )
 
         st.subheader("Top factors driving this prediction")
-        if result["top_factors"]:
+
+        if result.get("top_factors"):
             factors_df = pd.DataFrame(result["top_factors"])
-            factors_df.index = factors_df.index + 1 # start index at 1
-            st.dataframe(factors_df, use_container_width=True)
+
+            factors_df = factors_df.rename(
+                columns={
+                    "feature": "Feature",
+                    "shap_value": "SHAP impact",
+                    "feature_value": "Scaled feature value",
+                }
+            )
+
+            factors_df.index = factors_df.index + 1
+
+            st.dataframe(
+                factors_df,
+                width="stretch",
+            )
+
+            st.caption(
+                "Positive SHAP impact generally pushes the prediction "
+                "toward churn; negative impact generally pushes it "
+                "toward retention."
+            )
+        elif not include_shap:
+            st.caption(
+                "Enable “Show feature explanations with SHAP” to view "
+                "the factors behind the prediction."
+            )
         else:
-            st.caption("Enable the SHAP checkbox above to see feature explanations.")
+            st.info(
+                "The API returned no feature explanations for this prediction."
+            )
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Request to API failed: {e}")
+    except requests.exceptions.Timeout:
+        st.error(
+            "The API request timed out. SHAP calculations can take longer "
+            "than a basic prediction; try again or temporarily disable SHAP."
+        )
 
+    except requests.exceptions.HTTPError:
+        detail = "The API returned an error."
+
+        try:
+            detail = response.json().get("detail", detail)
+        except ValueError:
+            pass
+
+        st.error(f"Prediction request failed: {detail}")
+
+    except requests.exceptions.RequestException as exception:
+        st.error(f"Could not reach the prediction API: {exception}")
 
 # az container stop --resource-group churn --name churn-api
+# az container logs --resource-group churn --name churn-api
+# python -m streamlit run streamlit_app.py
