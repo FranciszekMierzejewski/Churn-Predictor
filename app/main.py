@@ -30,7 +30,9 @@ def get_model_artifacts():
 
     if _pipeline is None:
         pipeline, thresholds = load_model()
-        threshold = thresholds.get("recall_threshold", 0.4) # from models/thresholds.pkl, grab recall_threshold. 0.4 as fallback.
+        threshold = thresholds.get("recall_threshold", 0.32) # from models/thresholds.pkl, grab recall_threshold. 0.4 as fallback.
+
+        logger.info("Selected recall threshold: %.2f", threshold)
 
         shap_background_path = BASE_DIR / "models" / "shap_background.csv"
         x_train_path = BASE_DIR / "data" / "X_train.csv"
