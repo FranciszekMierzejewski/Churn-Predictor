@@ -10,9 +10,9 @@ COPY models/ ./models/
 COPY data/X_train.csv ./data/X_train.csv
 # main.py falls back to data/X_train.csv if shap_background.csv is missing
 
-EXPOSE 8000
+EXPOSE 8080
 
 # Run uvicorn from inside the app/ subdirectory so bare imports resolve
 WORKDIR /app/app
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}

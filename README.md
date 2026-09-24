@@ -3,7 +3,7 @@
 An end-to-end machine learning pipeline that predicts customer churn for a telecommunications company, deployed as a live web application with SHAP-powered explainability to identify the key drivers of churn at an individual customer level.
  
 **Live demo:** [churn-predictor-fm.streamlit.app](https://churn-predictor-fm.streamlit.app/)
-**API docs:** [Swagger UI](http://churnpredictorapi.swedencentral.azurecontainer.io:8000/docs)
+**API Docs:** [Swagger UI](https://churn-predictor-api-849632669512.europe-west1.run.app/docs)
  
 Built on the [IBM Telco Customer Churn dataset](https://www.kaggle.com/datasets/yeanzc/telco-customer-churn-ibm-dataset) (7,043 customers, 33 features).
  
